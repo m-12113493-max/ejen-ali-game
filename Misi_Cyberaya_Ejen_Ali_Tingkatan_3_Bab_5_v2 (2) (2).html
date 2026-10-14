@@ -1,0 +1,167 @@
+<!doctype html>
+<html lang="ms">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Misi Cyberaya — Ejen Matematik Tingkatan 3</title>
+<style>
+:root{--cyan:#27e8ff;--navy:#06111f;--panel:#0a2033;--muted:#a5c0cf;--green:#39f39a;--red:#ff5978}
+*{box-sizing:border-box}
+body{margin:0;background:#020711;color:#effaff;font-family:system-ui,Arial,sans-serif}
+#app{max-width:1200px;margin:auto;padding:10px}
+header{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;padding:5px 2px 12px}
+.brand{font-weight:900;letter-spacing:1px;color:var(--cyan)}
+.hud{display:flex;gap:7px;flex-wrap:wrap}.chip{background:#0a2033;border:1px solid #20516a;padding:7px 10px;border-radius:9px;font-size:13px}.chip b{color:var(--cyan)}
+#stage{position:relative;border:1px solid #20516a;border-radius:14px;overflow:hidden;background:#06111f}
+canvas{display:block;width:100%;height:min(68vh,690px);min-height:430px;touch-action:none}
+.panel{position:absolute;left:3%;right:3%;top:50%;transform:translateY(-50%);max-height:90%;overflow:auto;background:#04101ff2;border:1px solid var(--cyan);border-radius:15px;padding:20px;box-shadow:0 12px 45px #000b;display:none;text-align:center}
+.panel.show{display:block}
+h1{font-size:clamp(27px,5vw,48px);margin:4px 0;color:var(--cyan);letter-spacing:1px}
+h2{margin:3px 0 10px;color:var(--cyan)}
+p{line-height:1.5}.muted{color:var(--muted);font-size:13px}
+button{font:inherit;color:#f4fcff;background:#0b2b43;border:1px solid #2a8ba5;border-radius:9px;padding:10px 14px;margin:4px;cursor:pointer}
+button:hover{background:#124663}button.primary{background:var(--cyan);border:0;color:#00131c;font-weight:900}
+button:disabled{opacity:.4;cursor:not-allowed}
+.answers{display:flex;flex-wrap:wrap;justify-content:center;gap:6px}.answers button{min-width:min(220px,100%);text-align:left}
+#questionText{font-size:18px;line-height:1.45;margin:14px auto;max-width:780px}
+#toast{position:absolute;left:50%;top:12px;transform:translateX(-50%);padding:8px 13px;background:#04101fe8;border:1px solid #2a8ba5;border-radius:9px;display:none;max-width:90%;text-align:center}
+#toast.show{display:block}
+#controls{display:flex;justify-content:space-between;gap:10px;align-items:center;flex-wrap:wrap;padding:10px 2px}
+#pad{display:none}.padrow{display:flex;justify-content:center}
+.padbtn{width:48px;height:42px;padding:5px;font-size:20px}
+.progress{height:8px;background:#173044;border-radius:9px;overflow:hidden;margin:10px auto;max-width:520px}.progress span{display:block;height:100%;width:0;background:linear-gradient(90deg,#27e8ff,#39f39a);transition:width .2s}
+@media(max-width:650px){#app{padding:6px}canvas{height:62vh;min-height:400px}.panel{padding:13px;left:2%;right:2%}.chip{font-size:11px;padding:5px 7px}#pad{display:block}.muted.instructions{max-width:55%}}
+</style>
+</head>
+<body>
+<div id="app">
+<header>
+ <div><div class="brand">⚡ MISI CYBERAYA</div><div class="muted">Ejen Matematik • Tingkatan 3 • Bab 5: Nisbah Trigonometri</div></div>
+ <div class="hud">
+  <div class="chip">LEVEL <b id="level">1</b></div><div class="chip">CHECKPOINT <b id="cp">0/10</b></div>
+  <div class="chip">SKOR <b id="score">0</b></div><div class="chip">NYAWA <b id="lives">❤️❤️❤️</b></div>
+ </div>
+</header>
+<div id="stage">
+ <canvas id="game" aria-label="Peta permainan Cyberaya"></canvas>
+ <div id="toast"></div>
+ <section id="start" class="panel show">
+  <h1>OPERASI CYBERAYA</h1>
+  <p><b>Ali dan Comot sedang berehat...</b> Tiba-tiba lampu merah I.R.I.S. berkelip-kelip.</p>
+  <p><b>Ejen Bakar:</b> “Ali! Ada gangguan di Cyberaya. Hanya ejen yang menguasai nisbah trigonometri dapat mengaktifkan semula sistem bandar!”</p>
+  <p>Jelajah peta, lengkapkan <b>10 checkpoint</b> dan jawab <b>tepat 10 soalan</b>. Selepas itu, sertai perlumbaan akhir tanpa soalan!</p>
+  <button class="primary" id="startBtn">MULA MISI</button>
+  <p class="muted">Komputer: WASD / anak panah untuk bergerak • E untuk berinteraksi • Klik checkpoint aktif untuk bergerak automatik.</p>
+ </section>
+ <section id="dialog" class="panel">
+  <h2 id="dialogName">EJEN BAKAR</h2><p id="dialogText"></p><button class="primary" id="dialogNext">TERUSKAN</button>
+ </section>
+ <section id="question" class="panel">
+  <h2 id="qTitle">🔐 CHECKPOINT 1</h2><div class="progress"><span id="progress"></span></div>
+  <div id="questionText"></div><div class="answers" id="answers"></div><p class="muted">Jawab dengan betul untuk membuka laluan seterusnya. Jawapan salah mengurangkan satu nyawa.</p>
+ </section>
+ <section id="race" class="panel">
+  <h1>🏁 PERLUMBAAN AKHIR</h1><p id="raceIntro">Semua checkpoint berjaya! Berlumba ke garisan penamat menentang Comot.</p>
+  <p><b>Perlumbaan ini ialah permainan bergerak — tiada soalan tambahan.</b></p>
+  <p class="muted">Gerakkan Ali menggunakan WASD / anak panah dan sentuh 4 bendera perlumbaan mengikut urutan, kemudian capai FINISH. Comot turut berlumba!</p>
+  <button class="primary" id="raceStart">MULA PERLUMBAAN</button>
+ </section>
+ <section id="end" class="panel">
+  <h1 id="endTitle">CYBERAYA SELAMAT!</h1><p id="endText"></p><button class="primary" id="restart">MAIN SEMULA</button>
+ </section>
+</div>
+<div id="controls">
+ <div class="muted instructions">Gerak: WASD / anak panah • Interaksi: E • Klik checkpoint biru yang aktif untuk auto-gerak.</div>
+ <div id="pad">
+  <div class="padrow"><button class="padbtn" data-key="arrowup">▲</button></div>
+  <div class="padrow"><button class="padbtn" data-key="arrowleft">◀</button><button class="padbtn" data-key="arrowdown">▼</button><button class="padbtn" data-key="arrowright">▶</button></div>
+ </div>
+</div>
+</div>
+<script>
+(() => {
+const canvas=document.getElementById('game'),ctx=canvas.getContext('2d');
+const $=id=>document.getElementById(id);
+const panels=['start','dialog','question','race','end'];
+let W=1000,H=620,playing=false,mode='story',score=0,lives=3,completed=0,level=1;
+let keys={},target=null,dialogue=[],dialogueIndex=0,questionOpen=false,toastTimer=0,lastTime=0;
+const player={x:80,y:520,r:15,speed:3.4};
+const comot={x:110,y:540,r:13};
+const bakar={x:115,y:470};
+const checkpoints=[
+{x:210,y:510,label:'1',q:'Sisi bertentangan ialah 6 cm dan hipotenus 10 cm. Berapakah sin θ?',a:['0.4','0.6','0.8','1.6'],c:1},
+{x:365,y:435,label:'2',q:'Sisi bersebelahan ialah 8 cm dan hipotenus 10 cm. Berapakah kos θ?',a:['0.8','0.6','1.25','2'],c:0},
+{x:520,y:520,label:'3',q:'Sisi bertentangan = 9 cm dan sisi bersebelahan = 12 cm. Berapakah tan θ?',a:['4/3','3/4','3/5','5/3'],c:1},
+{x:690,y:430,label:'4',q:'Segi tiga bersudut tegak mempunyai hipotenus 10 cm dan sisi bertentangan θ ialah 6 cm. sin θ = ?',a:['3/5','4/5','3/4','4/3'],c:0},
+{x:850,y:510,label:'5',q:'Berapakah nilai tan 45°?',a:['0','1/2','1','√3'],c:2},
+{x:875,y:300,label:'6',q:'Berapakah nilai sin 30°?',a:['√3/2','1/2','1','0'],c:1},
+{x:710,y:220,label:'7',q:'Berapakah nilai kos 60°?',a:['√3/2','1','1/2','0'],c:2},
+{x:535,y:155,label:'8',q:'Jika tan θ = 1 dan θ ialah sudut tirus, nilai θ ialah…',a:['30°','45°','60°','90°'],c:1},
+{x:350,y:230,label:'9',q:'Jika sin θ = 3/5 dan hipotenus = 20 cm, panjang sisi bertentangan ialah…',a:['8 cm','10 cm','12 cm','15 cm'],c:2},
+{x:190,y:180,label:'10',q:'Jika kos θ = 4/5 dan hipotenus = 25 cm, panjang sisi bersebelahan ialah…',a:['15 cm','20 cm','24 cm','30 cm'],c:1}
+];
+const racePoints=[{x:170,y:490,label:'A'},{x:370,y:380,label:'B'},{x:580,y:460,label:'C'},{x:770,y:290,label:'D'},{x:880,y:120,label:'FINISH'}];
+let raceIndex=0,rivalIndex=0,raceActive=false,raceClock=0;
+function showPanel(id){panels.forEach(p=>$(p).classList.toggle('show',p===id));}
+function resize(){const r=canvas.getBoundingClientRect();const d=Math.min(window.devicePixelRatio||1,2);canvas.width=Math.round(r.width*d);canvas.height=Math.round(r.height*d);ctx.setTransform(d,0,0,d,0,0);W=r.width;H=r.height;}
+window.addEventListener('resize',resize);resize();
+function notify(msg){$('toast').textContent=msg;$('toast').classList.add('show');clearTimeout(toastTimer);toastTimer=setTimeout(()=>$('toast').classList.remove('show'),2200);}
+function tone(ok){try{const a=new AudioContext(),o=a.createOscillator(),g=a.createGain();o.frequency.value=ok?740:190;g.gain.value=.035;o.connect(g);g.connect(a.destination);o.start();o.stop(a.currentTime+.13);o.onended=()=>a.close();}catch(e){}}
+function startGame(){showPanel('dialog');playing=true;mode='story';setDialogue([['EJEN BAKAR','“Ali, bergerak ke checkpoint biru. Setiap checkpoint mempunyai satu kod trigonometri.”'],['ALI','“Saya akan selesaikan kesemua 10 checkpoint!”'],['COMOT','“Miau! Saya ikut dari belakang!”']]);}
+function setDialogue(items){dialogue=items;dialogueIndex=0;renderDialogue();}
+function renderDialogue(){if(dialogueIndex>=dialogue.length){showPanel('');return;}showPanel('dialog');$('dialogName').textContent=dialogue[dialogueIndex][0];$('dialogText').textContent=dialogue[dialogueIndex][1];}
+function nextDialogue(){dialogueIndex++;renderDialogue();}
+function openQuestion(index){if(index!==completed||index>=10)return;questionOpen=true;target=null;showPanel('question');const q=checkpoints[index];$('qTitle').textContent=`🔐 CHECKPOINT ${index+1} / 10`; $('progress').style.width=`${completed*10}%`;$('questionText').textContent=q.q;const box=$('answers');box.innerHTML='';q.a.forEach((answer,i)=>{const b=document.createElement('button');b.textContent=String.fromCharCode(65+i)+'. '+answer;b.onclick=()=>answerQuestion(i);box.appendChild(b);});}
+function answerQuestion(choice){if(!questionOpen)return;questionOpen=false;const q=checkpoints[completed];if(choice===q.c){score+=100;completed++;level=Math.min(10,Math.floor(completed/2)+1);tone(true);notify('Jawapan betul! +100 mata.');}else{lives--;tone(false);notify('Belum tepat! Cuba ingat nisbah trigonometri.');}
+ updateHud();if(lives<=0){finish(false);return;}if(completed===10){showPanel('dialog');setDialogue([['EJEN BAKAR','“Hebat, Ali! Semua 10 checkpoint dan 10 soalan selesai.”'],['ALI','“Cyberaya hampir pulih. Masa untuk perlumbaan terakhir!”']]);mode='raceIntro';return;}
+ showPanel('');mode='story';target={x:checkpoints[completed].x*W/1000,y:checkpoints[completed].y*H/620,index:completed};}
+function updateHud(){$('level').textContent=level;$('cp').textContent=`${completed}/10`;$('score').textContent=score;$('lives').textContent='❤️'.repeat(lives)+'♡'.repeat(3-lives);}
+function finish(win,raceWin=false){playing=false;raceActive=false;showPanel('end');$('endTitle').textContent=win?'🏆 CYBERAYA SELAMAT!':'💥 MISI GAGAL';$('endText').textContent=win?`Ali menyelesaikan 10 checkpoint dan 10 soalan. ${raceWin?'Ali memenangi perlumbaan akhir!':'Misi utama berjaya diselesaikan!'} Skor: ${score}.`:`Nyawa Ali telah habis. Cuba lagi dan kuasai nisbah trigonometri. Skor: ${score}.`;}
+function startRace(){showPanel('');mode='race';raceActive=true;raceIndex=0;rivalIndex=0;raceClock=0;player.x=70;player.y=H-80;comot.x=90;comot.y=H-60;target=null;notify('Perlumbaan bermula! Sentuh A → B → C → D → FINISH.');}
+function near(a,b,d=30){return Math.hypot(a.x-b.x,a.y-b.y)<d;}
+function interact(){if($('dialog').classList.contains('show')){nextDialogue();return;}if(!playing||questionOpen)return;if(mode==='raceIntro'){showPanel('race');return;}if(mode==='race'&&raceActive){notify('Ikut bendera perlumbaan mengikut urutan!');return;}const p=checkpoints[completed];if(p&&near(player,p,38))openQuestion(completed);else if(near(player,bakar,55))setDialogue([['EJEN BAKAR','“Cari checkpoint biru yang berkelip. Jawab dengan betul untuk membuka checkpoint seterusnya.”']]);else notify('Pergi ke checkpoint biru yang berkelip.');}
+window.addEventListener('keydown',e=>{const k=e.key.toLowerCase();if(['arrowup','arrowdown','arrowleft','arrowright',' '].includes(k))e.preventDefault();keys[k]=true;if(k==='e')interact();});
+window.addEventListener('keyup',e=>keys[e.key.toLowerCase()]=false);
+canvas.addEventListener('click',e=>{if(!playing||questionOpen||$('dialog').classList.contains('show')||mode==='race')return;const r=canvas.getBoundingClientRect(),x=(e.clientX-r.left),y=(e.clientY-r.top);const p=checkpoints[completed];if(p&&Math.hypot(x-p.x*W/1000,y-p.y*H/620)<52){target={x:p.x*W/1000,y:p.y*H/620,index:completed};notify('Ali sedang bergerak ke checkpoint '+(completed+1));}else{const idx=checkpoints.findIndex((p,i)=>i>completed&&Math.hypot(x-p.x*W/1000,y-p.y*H/620)<35);if(idx>=0)notify('Checkpoint itu masih dikunci. Selesaikan checkpoint '+(completed+1)+' dahulu.');}});
+document.querySelectorAll('.padbtn').forEach(b=>{const k=b.dataset.key;const on=e=>{e.preventDefault();keys[k]=true;};const off=e=>{e.preventDefault();keys[k]=false;};b.addEventListener('pointerdown',on);b.addEventListener('pointerup',off);b.addEventListener('pointerleave',off);b.addEventListener('pointercancel',off);});
+$('startBtn').onclick=startGame;$('dialogNext').onclick=()=>{if(mode==='raceIntro'&&dialogueIndex===dialogue.length-1){nextDialogue();showPanel('race');return;}nextDialogue();if(dialogueIndex>=dialogue.length){if(mode==='raceIntro')showPanel('race');}};
+$('raceStart').onclick=startRace;$('restart').onclick=()=>location.reload();
+function moveEntity(entity,dest,speed){const dx=dest.x-entity.x,dy=dest.y-entity.y,d=Math.hypot(dx,dy);if(d>speed){entity.x+=dx/d*speed;entity.y+=dy/d*speed;}else{entity.x=dest.x;entity.y=dest.y;return true;}return false;}
+function update(dt){
+ if(!playing||questionOpen||$('dialog').classList.contains('show'))return;
+ if(mode==='raceIntro')return;
+ if(mode==='race'&&raceActive){
+  raceClock+=dt;const p=racePoints[raceIndex];if(p&&near(player,p,27)){raceIndex++;score+=50;updateHud();tone(true);if(raceIndex>=racePoints.length){finish(true,true);return;}notify('Bendera '+p.label+' berjaya! +50 mata');}
+  const rp=racePoints[rivalIndex];if(rp){if(moveEntity(comot,{x:rp.x*W/1000,y:rp.y*H/620},2.0+raceClock*.002))rivalIndex++;}else{comot.x=player.x+20;comot.y=player.y+20;}
+  const dx=(keys.arrowright||keys.d?1:0)-(keys.arrowleft||keys.a?1:0),dy=(keys.arrowdown||keys.s?1:0)-(keys.arrowup||keys.w?1:0);if(dx||dy){const l=Math.hypot(dx,dy);player.x+=dx/l*player.speed*1.15;player.y+=dy/l*player.speed*1.15;}clampPlayer();if(rivalIndex>=racePoints.length&&raceIndex<racePoints.length){finish(true,false);}return;
+ }
+ if(target){if(moveEntity(player,target,player.speed)){const idx=target.index;target=null;if(idx===completed)openQuestion(idx);}return;}
+ const dx=(keys.arrowright||keys.d?1:0)-(keys.arrowleft||keys.a?1:0),dy=(keys.arrowdown||keys.s?1:0)-(keys.arrowup||keys.w?1:0);if(dx||dy){const l=Math.hypot(dx,dy);player.x+=dx/l*player.speed;player.y+=dy/l*player.speed;}
+ clampPlayer();const p=checkpoints[completed];if(p&&near(player,{x:p.x*W/1000,y:p.y*H/620},26))openQuestion(completed);
+}
+function clampPlayer(){player.x=Math.max(25,Math.min(W-25,player.x));player.y=Math.max(70,Math.min(H-25,player.y));}
+function character(x,y,body,accent,label,r=15){ctx.save();ctx.translate(x,y);ctx.fillStyle='#0008';ctx.beginPath();ctx.ellipse(0,r+7,r+5,5,0,0,Math.PI*2);ctx.fill();ctx.fillStyle=body;ctx.beginPath();ctx.arc(0,0,r,0,Math.PI*2);ctx.fill();ctx.fillStyle=accent;ctx.fillRect(-r*.85,3,r*1.7,r*.8);ctx.fillStyle='#d9faff';ctx.fillRect(-r*.58,-r*.25,r*1.15,4);ctx.fillStyle='#fff';ctx.font='bold 10px Arial';ctx.textAlign='center';ctx.fillText(label,0,r+22);ctx.restore();}
+function draw(){
+ ctx.clearRect(0,0,W,H);ctx.fillStyle='#06121f';ctx.fillRect(0,0,W,H);
+ // Futuristic grid and glowing roads
+ for(let x=0;x<W;x+=55)for(let y=55;y<H;y+=55){ctx.fillStyle=((x/55+y/55)%2)?'#081b2a':'#0a2030';ctx.fillRect(x,y,50,50);}
+ ctx.fillStyle='#102d40';ctx.fillRect(0,H*.52,W,34);ctx.fillRect(W*.53,55,32,H);
+ ctx.strokeStyle='#1b6175';ctx.lineWidth=2;ctx.setLineDash([13,12]);ctx.beginPath();ctx.moveTo(0,H*.52+17);ctx.lineTo(W,H*.52+17);ctx.moveTo(W*.53+16,55);ctx.lineTo(W*.53+16,H);ctx.stroke();ctx.setLineDash([]);
+ for(let i=0;i<14;i++){const x=(i*89+25)%(W-65),y=70+(i%5)*Math.max(60,(H-120)/5);ctx.fillStyle='#0b2a3c';ctx.fillRect(x,y,47,36);ctx.strokeStyle='#1c637a';ctx.strokeRect(x,y,47,36);ctx.fillStyle='#27e8ff';for(let j=0;j<3;j++)ctx.fillRect(x+7+j*13,y+8,6,5);}
+ if(mode==='race'){
+  ctx.strokeStyle='#a2f7ff';ctx.lineWidth=4;ctx.setLineDash([12,8]);ctx.beginPath();racePoints.forEach((p,i)=>{const x=p.x*W/1000,y=p.y*H/620;i?ctx.lineTo(x,y):ctx.moveTo(x,y)});ctx.stroke();ctx.setLineDash([]);
+  racePoints.forEach((p,i)=>{const x=p.x*W/1000,y=p.y*H/620;ctx.fillStyle=i<raceIndex?'#39f39a':i===raceIndex?'#27e8ff':'#29495b';ctx.beginPath();ctx.arc(x,y,i===raceIndex?20:14,0,Math.PI*2);ctx.fill();ctx.fillStyle='#00121a';ctx.font='bold 11px Arial';ctx.textAlign='center';ctx.fillText(p.label,x,y+4);});
+ }else{
+  checkpoints.forEach((p,i)=>{const x=p.x*W/1000,y=p.y*H/620,active=i===completed;ctx.globalAlpha=i<completed?1:.72;ctx.fillStyle=i<completed?'#39f39a':active?'#27e8ff':'#29495b';ctx.beginPath();ctx.arc(x,y,active?22:15,0,Math.PI*2);ctx.fill();ctx.globalAlpha=1;ctx.fillStyle='#00121a';ctx.font='bold 11px Arial';ctx.textAlign='center';ctx.fillText(p.label,x,y+4);if(active){ctx.strokeStyle='#c5fbff';ctx.lineWidth=2;ctx.beginPath();ctx.arc(x,y,28+Math.sin(Date.now()/150)*3,0,Math.PI*2);ctx.stroke();}});
+ }
+ character(bakar.x*W/1000,bakar.y*H/620,'#3b4655','#ff5978','BAKAR',14);
+ character(comot.x,comot.y,'#ffb64d','#fff0bd','COMOT',11);
+ character(player.x,player.y,'#1479b9','#27e8ff','ALI',15);
+ ctx.fillStyle='#b5d9e8';ctx.font='12px Arial';ctx.textAlign='left';ctx.fillText(mode==='race'?'PERLUMBAAN: ikut A → B → C → D → FINISH':'MISI: cari checkpoint biru yang berkelip',12,22);
+}
+function loop(t){const dt=Math.min(40,t-(lastTime||t));lastTime=t;update(dt);draw();requestAnimationFrame(loop);}
+updateHud();requestAnimationFrame(loop);
+})();
+</script>
+</body>
+</html>
